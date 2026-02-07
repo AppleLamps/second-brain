@@ -3,6 +3,7 @@
 import type { BookmarkItem } from "@/lib/types";
 import { LogOut, RotateCw, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { GrokPanel } from "./grok-panel";
 import { FolderTabs, type FolderTab } from "./folder-tabs";
 import { BookmarkList } from "./bookmark-list";
@@ -15,9 +16,14 @@ type ApiResp = {
 };
 
 export function AppClient() {
+  const searchParams = useSearchParams();
+  const initialView =
+    searchParams.get("view") === "analysis" ? "analysis" : "bookmarks";
   const [isPending, startTransition] = useTransition();
   const [activeFolder, setActiveFolder] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"analysis" | "bookmarks">("analysis");
+  const [viewMode, setViewMode] = useState<"analysis" | "bookmarks">(
+    initialView,
+  );
   const [data, setData] = useState<Omit<ApiResp, "items" | "meta"> | null>(null);
   const [items, setItems] = useState<BookmarkItem[]>([]);
   const [nextToken, setNextToken] = useState<string | null>(null);
@@ -426,7 +432,7 @@ export function AppClient() {
                 This view keeps analysis in reach while you browse bookmarks.
               </p>
               <div className="mt-4">
-                <GrokPanel bookmarks={shownItems} />
+                <GrokPanel bookmarks={items} />
               </div>
             </div>
           </aside>
@@ -532,7 +538,7 @@ export function AppClient() {
               ) : null}
 
               <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6">
-                <GrokPanel bookmarks={shownItems} />
+                <GrokPanel bookmarks={items} />
               </div>
             </div>
           </section>

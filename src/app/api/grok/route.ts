@@ -29,12 +29,26 @@ const BookmarkItemSchema = z.object({
 });
 
 const ReqSchema = z.object({
-  items: z.array(BookmarkItemSchema).min(1).max(50),
+  items: z.array(BookmarkItemSchema).min(1).max(500),
 });
 
 const InsightsSchema = z.object({
   title: z.string(),
   oneLiner: z.string(),
+  aboutUser: z.string(),
+  interestSignals: z.array(
+    z.object({
+      label: z.string(),
+      evidence: z.array(z.string()),
+    }),
+  ),
+  recentBookmarks: z.array(
+    z.object({
+      id: z.string(),
+      summary: z.string(),
+      why: z.string(),
+    }),
+  ),
   themes: z.array(
     z.object({
       label: z.string(),
@@ -138,7 +152,7 @@ export async function POST(req: Request) {
   const system = [
     "You are Grok, acting as a personal research assistant for X bookmarks.",
     "Return ONLY valid JSON. No markdown. No extra keys.",
-    "Your job: help the user retrieve and revisit what they saved with deep, specific observations.",
+    "Your job: deliver deep, specific observations about the user's bookmarks, interests, and patterns.",
     "Important: X bookmark lookup does not include the true 'saved at' timestamp. If a field named savedAt is present, treat it as approximate and do not reason about recency from it.",
     "If a URL or author is unclear, you may use web_search or x_search to gather context. Only cite information you learned from tools.",
     "",
@@ -146,6 +160,9 @@ export async function POST(req: Request) {
     "{",
     '  "title": string,',
     '  "oneLiner": string,',
+    '  "aboutUser": string,',
+    '  "interestSignals": [{"label": string, "evidence": string[]}],',
+    '  "recentBookmarks": [{"id": string, "summary": string, "why": string}],',
     '  "themes": [{"label": string, "why": string}],',
     '  "suggestedTags": string[],',
     '  "resurfaced": [{"id": string, "reason": string, "questionToRevisit": string}],',
@@ -155,9 +172,12 @@ export async function POST(req: Request) {
 
   const user = [
     "Analyze these bookmarks (JSON array).",
-    "Focus on: recurring themes, missing tags that would improve retrieval, and 6-10 concrete next actions.",
+    "Focus on: what this collection says about the user, their strongest interests, and what they bookmarked most recently (use createdAt as post time; do not claim saved time).",
+    "Provide 5-8 interest signals with evidence (bookmark ids or short quotes).",
+    "Include 4-8 recent bookmarks with why they matter.",
+    "Provide 6-10 concrete next actions.",
     "Pick 4-8 items to resurface with a specific reason + a question that makes the user do work.",
-    "Make themes specific and evidence-based, not generic. Include the 2-3 strongest signals per theme.",
+    "Make themes specific and evidence-based, not generic.",
     "Suggested tags should be precise and practical (avoid duplicates or near-synonyms).",
     "",
     JSON.stringify(compact),
@@ -172,8 +192,8 @@ export async function POST(req: Request) {
       ],
       tools: [{ type: "web_search" }, { type: "x_search" }, { type: "code_interpreter" }],
       temperature: 0.2,
-      maxTokens: 1600,
-      maxTurns: 5,
+      maxTokens: 200000,
+      maxTurns: 8,
     });
 
     const insights = parseInsights(content) as GrokInsights;

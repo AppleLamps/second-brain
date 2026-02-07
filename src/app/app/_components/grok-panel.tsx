@@ -19,6 +19,18 @@ function fallbackInsights(bookmarks: BookmarkItem[]): GrokInsights {
     title: "Demo insights",
     oneLiner:
       "You bookmark practical ideas and contrarian heuristics; let’s turn them into a retrieval system.",
+    aboutUser:
+      "You lean toward systems thinking, technical depth, and actionable frameworks over hot takes.",
+    interestSignals: [
+      { label: "Infrastructure as product", evidence: ["rate limits", "streaming", "policy"] },
+      { label: "Measurement over vibes", evidence: ["benchmarks", "edge cases"] },
+      { label: "Methods over opinions", evidence: ["contracts", "sentence jobs"] },
+    ],
+    recentBookmarks: bookmarks.slice(0, 3).map((b) => ({
+      id: b.id,
+      summary: b.text.slice(0, 120) || "Recent save",
+      why: "Recent post that likely reflects a current focus.",
+    })),
     themes: [
       { label: "Infrastructure as product", why: "Rate limits, streaming, and policy show up repeatedly." },
       { label: "Measurement over vibes", why: "Benchmarks, edge cases, and testing threads recur." },
@@ -47,7 +59,7 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
 
   const payload = useMemo(
     () => ({
-      items: bookmarks.slice(0, 50),
+      items: bookmarks.slice(0, 500),
     }),
     [bookmarks],
   );
@@ -90,6 +102,9 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
           <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">
             {insights.oneLiner}
           </p>
+          <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--ink)]">
+            {insights.aboutUser}
+          </div>
         </div>
 
         <button
@@ -114,6 +129,44 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
       ) : null}
 
       {isPending ? <div className="mt-4 sb-thinking-bar" /> : null}
+
+      <div className="mt-5">
+        <div className="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--muted-ink)]">
+          Interest signals
+        </div>
+        <div className="sb-stagger mt-3 space-y-2">
+          {insights.interestSignals.map((signal) => (
+            <div
+              key={signal.label}
+              className="rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-4"
+            >
+              <div className="font-semibold text-[var(--ink)]">{signal.label}</div>
+              <div className="mt-1 text-sm text-[var(--muted-ink)]">
+                Evidence: {signal.evidence.join(", ")}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <div className="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--muted-ink)]">
+          Recent bookmarks
+        </div>
+        <div className="sb-stagger mt-3 space-y-2">
+          {insights.recentBookmarks.map((b) => (
+            <div
+              key={b.id}
+              className="rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-4"
+            >
+              <div className="text-sm font-semibold text-[var(--ink)]">
+                {b.summary}
+              </div>
+              <div className="mt-1 text-sm text-[var(--muted-ink)]">{b.why}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-5">
         <div className="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--muted-ink)]">

@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <span className="hidden lg:block">Bookmarks</span>
           </Link>
           <Link
-            href="/app"
+            href="/app?view=analysis"
             className="flex items-center gap-4 rounded-full px-3 py-3 text-[15px] text-[var(--muted-ink)] transition-colors hover:bg-[var(--surface)] lg:px-4"
           >
             <Sparkles size={22} strokeWidth={1.75} />

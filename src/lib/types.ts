@@ -27,6 +27,9 @@ export type BookmarkItem = {
 export type GrokInsights = {
   title: string;
   oneLiner: string;
+  aboutUser: string;
+  interestSignals: Array<{ label: string; evidence: string[] }>;
+  recentBookmarks: Array<{ id: string; summary: string; why: string }>;
   themes: Array<{ label: string; why: string }>;
   suggestedTags: string[];
   resurfaced: Array<{
