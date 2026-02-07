@@ -22,12 +22,24 @@ export function AppClient() {
   const [items, setItems] = useState<BookmarkItem[]>([]);
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
   const [sortKey, setSortKey] = useState<"newest" | "likes" | "impressions">(
     "newest",
   );
   const [error, setError] = useState<string | null>(null);
   const [connectUrl, setConnectUrl] = useState<string>("/api/auth/x/start");
+  const [desiredCount, setDesiredCount] = useState<number>(50);
+
+  async function safeJson(res: Response) {
+    const text = await res.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      return {};
+    }
+  }
 
   const tabs = useMemo<FolderTab[]>(() => {
     const base: FolderTab[] = [{ id: "all", name: "All bookmarks" }];
@@ -38,31 +50,40 @@ export function AppClient() {
   function fetchPage({
     folderId,
     paginationToken,
+    maxResults,
+    forceRefresh,
+    merge,
   }: {
     folderId: string;
     paginationToken?: string | null;
+    maxResults?: number;
+    forceRefresh?: boolean;
+    merge?: boolean;
   }) {
-    return new Promise<void>((resolve) => {
+    return new Promise<{ ok: boolean; count: number; nextToken: string | null }>((resolve) => {
       startTransition(() => {
         (async () => {
           setError(null);
           const qs = new URLSearchParams();
           if (folderId !== "all") qs.set("folder_id", folderId);
           if (paginationToken) qs.set("pagination_token", paginationToken);
+          if (maxResults) qs.set("max_results", String(maxResults));
+          if (forceRefresh) qs.set("force_refresh", "true");
 
           const res = await fetch(`/api/bookmarks?${qs.toString()}`, {
             cache: "no-store",
           });
           if (res.status === 401) {
-            const b = await res.json().catch(() => ({}));
+            const b = (await safeJson(res)) as { error?: string; connect_url?: string };
             setConnectUrl(b.connect_url ?? "/api/auth/x/start");
             setError(b.error ?? "Not connected");
             setData(null);
             setItems([]);
             setNextToken(null);
+            resolve({ ok: false, count: 0, nextToken: null });
             return;
           }
-          const b = (await res.json()) as ApiResp;
+          const b = (await safeJson(res)) as ApiResp;
           if (!res.ok) {
             setError(
               (b as unknown as { error?: string }).error ?? "Failed to load",
@@ -70,21 +91,35 @@ export function AppClient() {
             setData(null);
             setItems([]);
             setNextToken(null);
+            resolve({ ok: false, count: 0, nextToken: null });
             return;
           }
 
           setData({ user: b.user, folders: b.folders });
-          if (paginationToken) setItems((prev) => [...prev, ...b.items]);
-          else setItems(b.items);
-          setNextToken(b.meta?.next_token ?? null);
+          if (paginationToken) {
+            setItems((prev) => [...prev, ...b.items]);
+          } else if (merge) {
+            setItems((prev) => {
+              const map = new Map(prev.map((it) => [it.id, it]));
+              for (const it of b.items) {
+                if (!map.has(it.id)) map.set(it.id, it);
+              }
+              return Array.from(map.values());
+            });
+          } else {
+            setItems(b.items);
+          }
+          const next = b.meta?.next_token ?? null;
+          setNextToken(next);
+          resolve({ ok: true, count: b.items.length, nextToken: next });
         })()
           .catch((e) => {
             setError(e instanceof Error ? e.message : "Failed to load");
             setData(null);
             setItems([]);
             setNextToken(null);
+            resolve({ ok: false, count: 0, nextToken: null });
           })
-          .finally(resolve);
       });
     });
   }
@@ -113,7 +148,11 @@ export function AppClient() {
   async function refreshNow() {
     if (!data) return;
     setQuery("");
-    await fetchPage({ folderId: activeFolder, paginationToken: null });
+    await fetchPage({
+      folderId: activeFolder,
+      paginationToken: null,
+      forceRefresh: true,
+    });
   }
 
   async function disconnect() {
@@ -159,6 +198,59 @@ export function AppClient() {
   }, [items, query, sortKey]);
 
   const isBookmarksFocus = viewMode === "bookmarks";
+  const additionalNeeded = Math.max(0, desiredCount - items.length);
+  const estimatedCost = (additionalNeeded * 0.06).toFixed(2);
+
+  async function pullToCount() {
+    if (bulkLoading || isPending) return;
+    const target = Math.max(1, Math.min(1000, Math.floor(desiredCount)));
+    if (Number.isNaN(target)) return;
+    setDesiredCount(target);
+    setBulkLoading(true);
+    try {
+      let current = items.length;
+      let token = nextToken;
+      if (current === 0) {
+        const first = await fetchPage({
+          folderId: activeFolder,
+          paginationToken: null,
+          maxResults: Math.min(100, target),
+        });
+        if (!first.ok) return;
+        current = first.count;
+        token = first.nextToken;
+      }
+      while (current < target && token) {
+        const remaining = target - current;
+        const page = await fetchPage({
+          folderId: activeFolder,
+          paginationToken: token,
+          maxResults: Math.min(100, remaining),
+        });
+        if (!page.ok) break;
+        if (page.count === 0) break;
+        current += page.count;
+        token = page.nextToken;
+      }
+
+      if (current < target && !token) {
+        const remaining = target - current;
+        const page = await fetchPage({
+          folderId: activeFolder,
+          paginationToken: null,
+          maxResults: Math.min(100, remaining),
+          forceRefresh: true,
+          merge: true,
+        });
+        if (page.ok) {
+          current += page.count;
+          token = page.nextToken;
+        }
+      }
+    } finally {
+      setBulkLoading(false);
+    }
+  }
 
   return (
     <main
@@ -380,6 +472,42 @@ export function AppClient() {
                     activeId={activeFolder}
                     onChange={setActiveFolder}
                   />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
+                  Bookmark depth
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
+                    <input
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={desiredCount}
+                      onChange={(e) => {
+                        const raw = Number(e.target.value);
+                        if (Number.isNaN(raw)) return;
+                        setDesiredCount(Math.max(1, Math.min(1000, raw)));
+                      }}
+                      className="w-full bg-transparent text-sm text-[var(--ink)] outline-none"
+                      aria-label="Total bookmarks to pull"
+                    />
+                    <span className="text-xs text-[var(--muted-ink)]">total</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={pullToCount}
+                    disabled={bulkLoading || isPending || additionalNeeded === 0}
+                    className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--ink)] px-4 text-xs font-semibold text-[var(--surface)] transition hover:opacity-90 disabled:opacity-60"
+                  >
+                    {bulkLoading ? "Pulling..." : "Pull to count"}
+                  </button>
+                </div>
+                <div className="mt-2 text-xs text-[var(--muted-ink)]">
+                  Loaded: {items.length}. Additional: {additionalNeeded}. Est.
+                  cost: ${estimatedCost} (${(0.06).toFixed(2)} per bookmark).
                 </div>
               </div>
 

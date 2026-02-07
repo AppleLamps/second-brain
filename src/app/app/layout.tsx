@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Bookmark, Home, Search, Sparkles, Zap } from "lucide-react";
+import { getSession } from "@/lib/session";
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const session = await getSession();
+  const username = session?.user?.username ?? session?.user?.name;
   return (
     <div className="flex min-h-screen">
       {/* Grok-style sidebar */}
@@ -51,14 +54,23 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         {/* Bottom action */}
         <div className="mt-auto flex flex-col gap-2">
-          <a
-            href="/api/auth/x/start"
-            className="flex items-center justify-center gap-3 rounded-full bg-[var(--accent)] px-3 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 lg:px-5"
-            title="Connect your X account (OAuth 2.0 PKCE)"
-          >
-            <Zap size={18} />
-            <span className="hidden lg:block">Connect X</span>
-          </a>
+          {session ? (
+            <div className="flex items-center justify-center gap-3 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-xs font-semibold text-[var(--muted-ink)] lg:px-5">
+              <Zap size={16} className="text-[var(--accent-3)]" />
+              <span className="hidden lg:block">
+                Connected{username ? ` as @${username}` : ""}
+              </span>
+            </div>
+          ) : (
+            <a
+              href="/api/auth/x/start"
+              className="flex items-center justify-center gap-3 rounded-full bg-[var(--accent)] px-3 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 lg:px-5"
+              title="Connect your X account (OAuth 2.0 PKCE)"
+            >
+              <Zap size={18} />
+              <span className="hidden lg:block">Connect X</span>
+            </a>
+          )}
         </div>
       </aside>
 

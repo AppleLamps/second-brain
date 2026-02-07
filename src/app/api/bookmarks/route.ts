@@ -10,6 +10,7 @@ const QSchema = z.object({
   folder_id: z.string().optional(),
   max_results: z.coerce.number().int().min(1).max(100).optional(),
   pagination_token: z.string().optional(),
+  force_refresh: z.coerce.boolean().optional(),
 });
 
 type XBookmarkFolder = { id: string; name: string };
@@ -102,6 +103,7 @@ export async function GET(req: Request) {
   }
 
   let live = session;
+  const forceRefresh = Boolean(parsedQ.data.force_refresh);
   try {
     live = await refreshIfNeeded(session);
   } catch {
@@ -119,13 +121,118 @@ export async function GET(req: Request) {
           data: { id: string; username?: string; name?: string };
         });
 
+  const max = parsedQ.data.max_results ?? 50;
+  const folderId = parsedQ.data.folder_id ?? null;
+  const paginationToken = parsedQ.data.pagination_token ?? null;
+  const dbOffset = paginationToken ? Number.parseInt(paginationToken, 10) : 0;
+  const dbPaginationOk = paginationToken ? Number.isFinite(dbOffset) : true;
+
+  if (process.env.DATABASE_URL && !forceRefresh && dbPaginationOk) {
+    try {
+      const sql = db();
+      const whereFolder = folderId
+        ? sql`and folder_id = ${folderId}`
+        : sql``;
+
+      const totalRows = await sql<
+        Array<{ count: number }>
+      >`select count(*)::int as count from sb_bookmarks where x_user_id = ${me.data.id} ${whereFolder}`;
+      const total = totalRows?.[0]?.count ?? 0;
+
+      if (total > 0) {
+        const rows = await sql<
+          Array<{
+            tweet_id: string;
+            text: string | null;
+            author_id: string | null;
+            author_username: string | null;
+            author_name: string | null;
+            post_created_at: Date | null;
+            last_seen_at: Date | null;
+            url: string | null;
+            tags: string[] | null;
+            like_count: number | null;
+            repost_count: number | null;
+            reply_count: number | null;
+            impression_count: number | null;
+            folder_id: string | null;
+          }>
+        >`
+          select
+            tweet_id,
+            text,
+            author_id,
+            author_username,
+            author_name,
+            post_created_at,
+            last_seen_at,
+            url,
+            tags,
+            like_count,
+            repost_count,
+            reply_count,
+            impression_count,
+            folder_id
+          from sb_bookmarks
+          where x_user_id = ${me.data.id} ${whereFolder}
+          order by last_seen_at desc nulls last
+          limit ${max} offset ${dbOffset}
+        `;
+
+        const items =
+          rows?.map((row) => {
+            const username = row.author_username ?? "user";
+            return {
+              id: row.tweet_id,
+              text: row.text ?? "",
+              author: {
+                id: row.author_id ?? "",
+                name: row.author_name ?? username,
+                username,
+              },
+              createdAt: (row.post_created_at ?? row.last_seen_at ?? new Date()).toISOString(),
+              savedAt: (row.last_seen_at ?? row.post_created_at ?? new Date()).toISOString(),
+              url: row.url ?? `https://x.com/${username}/status/${row.tweet_id}`,
+              metrics: {
+                likeCount: row.like_count ?? undefined,
+                repostCount: row.repost_count ?? undefined,
+                replyCount: row.reply_count ?? undefined,
+                impressionCount: row.impression_count ?? undefined,
+              },
+              tags: Array.isArray(row.tags) ? row.tags : [],
+              folderId: row.folder_id ?? undefined,
+            };
+          }) ?? [];
+
+        const folders = await sql<Array<{ folder_id: string; name: string }>>`
+          select folder_id, name
+          from sb_bookmark_folders
+          where x_user_id = ${me.data.id}
+          order by name asc
+        `;
+
+        const nextOffset = dbOffset + items.length;
+        return NextResponse.json({
+          user: me.data,
+          folders: folders.map((f) => ({ id: f.folder_id, name: f.name })),
+          items,
+          meta: {
+            result_count: items.length,
+            next_token: nextOffset < total ? String(nextOffset) : undefined,
+          },
+        });
+      }
+    } catch {
+      // If DB fails, fall back to live API.
+    }
+  }
+
   // Folders
   const foldersResp = (await xFetch(
     `/users/${me.data.id}/bookmarks/folders?max_results=100`,
     live.access_token,
   )) as { data?: XBookmarkFolder[]; meta?: { next_token?: string } };
 
-  const max = parsedQ.data.max_results ?? 50;
   const tweetFields = [
     "created_at",
     "author_id",
@@ -136,21 +243,21 @@ export async function GET(req: Request) {
   const expansions = ["author_id"].join(",");
 
   let bookmarksPath: string;
-  if (parsedQ.data.folder_id) {
+  if (folderId) {
     const qs = new URLSearchParams();
     // Even if the OpenAPI snapshot doesn't list these params for folder lookup,
     // passing them is harmless if ignored, and enables pagination if supported.
     qs.set("max_results", String(max));
-    if (parsedQ.data.pagination_token) qs.set("pagination_token", parsedQ.data.pagination_token);
+    if (paginationToken) qs.set("pagination_token", paginationToken);
     qs.set("tweet.fields", tweetFields);
     qs.set("expansions", expansions);
     qs.set("user.fields", userFields);
 
-    bookmarksPath = `/users/${me.data.id}/bookmarks/folders/${encodeURIComponent(parsedQ.data.folder_id)}?${qs.toString()}`;
+    bookmarksPath = `/users/${me.data.id}/bookmarks/folders/${encodeURIComponent(folderId)}?${qs.toString()}`;
   } else {
     const qs = new URLSearchParams();
     qs.set("max_results", String(max));
-    if (parsedQ.data.pagination_token) qs.set("pagination_token", parsedQ.data.pagination_token);
+    if (paginationToken) qs.set("pagination_token", paginationToken);
     qs.set("tweet.fields", tweetFields);
     qs.set("expansions", expansions);
     qs.set("user.fields", userFields);
@@ -219,7 +326,7 @@ export async function GET(req: Request) {
           `;
         }
 
-        const folderIdForItems = parsedQ.data.folder_id ?? null;
+        const folderIdForItems = folderId ?? null;
         for (const it of items) {
           await q`
             insert into sb_bookmarks (
