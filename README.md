@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Second Brain is a polished demo web app that turns X bookmarks into a searchable knowledge base, with Grok-powered insights.
 
 ## Getting Started
 
-First, run the development server:
+Install and run the dev server:
 
 ```bash
+npm i
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Grok (xAI) setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `.env.example` to `.env.local` and set:
 
-## Learn More
+- `XAI_API_KEY`
+- `XAI_BASE_URL` (defaults to `https://api.x.ai/v1`)
+- `XAI_MODEL` (defaults to `grok-2-latest`)
 
-To learn more about Next.js, take a look at the following resources:
+Then use the dashboard button "Analyze" to call `src/app/api/grok/route.ts`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## X OAuth setup (Bookmarks)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Set the following in `.env.local` (and in Vercel project env vars):
 
-## Deploy on Vercel
+- `APP_SECRET` (random long string)
+- `X_CLIENT_ID`
+- `X_REDIRECT_URI` (must exactly match your app settings; e.g. `https://YOUR.vercel.app/api/auth/x/callback`)
+- Optional: `X_CLIENT_SECRET` (only for confidential clients)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Then click "Connect X" (hits `src/app/api/auth/x/start/route.ts`) and the app will load bookmarks from `src/app/api/bookmarks/route.ts`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Neon (Postgres) setup
+
+1. Set `DATABASE_URL` in `.env.local` (and in Vercel project env vars).
+2. Run migrations:
+
+```bash
+npm run db:migrate
+```
+
+When `DATABASE_URL` is present, `/api/bookmarks` will upsert users/folders/bookmarks into Neon.
+
+## Notes
+
+Bookmark lookup does not return a "saved at" timestamp; the UI currently uses `created_at` as a stand-in.
