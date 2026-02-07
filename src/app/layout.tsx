@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const display = Fraunces({
   variable: "--font-display",
   subsets: ["latin"],
-  // Variable font; weights set via CSS where needed.
+  weight: ["400", "500", "600", "700"],
 });
 
-const text = IBM_Plex_Sans({
+const text = Hanken_Grotesk({
   variable: "--font-text",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
-const mono = IBM_Plex_Mono({
+const mono = JetBrains_Mono({
   variable: "--font-code",
   subsets: ["latin"],
   weight: ["400", "500"],

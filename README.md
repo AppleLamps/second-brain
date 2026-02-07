@@ -17,7 +17,7 @@ Copy `.env.example` to `.env.local` and set:
 
 - `XAI_API_KEY`
 - `XAI_BASE_URL` (defaults to `https://api.x.ai/v1`)
-- `XAI_MODEL` (defaults to `grok-2-latest`)
+- `XAI_MODEL` (defaults to `grok-4-1-fast-reasoning`)
 
 Then use the dashboard button "Analyze" to call `src/app/api/grok/route.ts`.
 

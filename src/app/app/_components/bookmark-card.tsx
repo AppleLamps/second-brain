@@ -19,17 +19,17 @@ export function BookmarkCard({ item }: { item: BookmarkItem }) {
       initial={{ opacity: 0, y: 10, filter: "blur(2px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
-      className="group rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 shadow-[0_18px_60px_var(--shadow)] transition hover:-translate-y-[1px] hover:shadow-[0_26px_90px_var(--shadow)]"
+      className="group border-b border-[var(--line)] px-4 py-4 transition hover:bg-[var(--surface)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-semibold tracking-[0.16em] uppercase text-[color:var(--muted-ink)]">
-            @{item.author.username}{" "}
-            <span className="font-normal tracking-normal">
-              {" - "}posted {new Date(item.createdAt).toLocaleDateString()}
+          <div className="text-xs font-semibold text-[var(--muted-ink)]">
+            <span className="text-[var(--ink)]">@{item.author.username}</span>
+            <span className="font-normal">
+              {" · "}{new Date(item.createdAt).toLocaleDateString()}
             </span>
           </div>
-          <p className="mt-2 text-sm leading-7 text-[color:rgba(16,17,20,0.92)]">
+          <p className="mt-2 text-[15px] leading-6 text-[var(--ink)]">
             {item.text}
           </p>
         </div>
@@ -38,7 +38,7 @@ export function BookmarkCard({ item }: { item: BookmarkItem }) {
             href={item.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[color:rgba(16,17,20,0.02)] text-[color:var(--muted-ink)] transition hover:bg-[color:rgba(16,17,20,0.06)]"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--muted-ink)] transition hover:bg-[rgba(29,155,240,0.1)] hover:text-[var(--accent)]"
             title="Open on X"
           >
             <ExternalLink size={16} />
@@ -54,20 +54,18 @@ export function BookmarkCard({ item }: { item: BookmarkItem }) {
         ))}
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-4 border-t border-[var(--line)] pt-3 text-xs text-[color:var(--muted-ink)]">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center gap-1">
-            <Star size={14} /> {fmt(item.metrics?.likeCount)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Repeat2 size={14} /> {fmt(item.metrics?.repostCount)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <MessageCircle size={14} /> {fmt(item.metrics?.replyCount)}
-          </span>
-        </div>
+      <div className="mt-3 flex items-center gap-6 text-xs text-[var(--muted-ink)]">
+        <span className="inline-flex items-center gap-1.5 transition hover:text-[var(--accent-2)]">
+          <Star size={14} /> {fmt(item.metrics?.likeCount)}
+        </span>
+        <span className="inline-flex items-center gap-1.5 transition hover:text-[var(--accent)]">
+          <Repeat2 size={14} /> {fmt(item.metrics?.repostCount)}
+        </span>
+        <span className="inline-flex items-center gap-1.5 transition hover:text-[var(--accent)]">
+          <MessageCircle size={14} /> {fmt(item.metrics?.replyCount)}
+        </span>
         <span className="hidden sm:inline">
-          impressions: {fmt(item.metrics?.impressionCount)}
+          {fmt(item.metrics?.impressionCount)} views
         </span>
       </div>
     </motion.article>

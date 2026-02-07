@@ -1,4 +1,4 @@
-import { xaiChatCompletion } from "@/lib/xai";
+import { xaiAgenticResponse } from "@/lib/xai";
 import type { BookmarkItem, GrokInsights } from "@/lib/types";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -29,8 +29,42 @@ const BookmarkItemSchema = z.object({
 });
 
 const ReqSchema = z.object({
-  items: z.array(BookmarkItemSchema).min(1).max(30),
+  items: z.array(BookmarkItemSchema).min(1).max(50),
 });
+
+const InsightsSchema = z.object({
+  title: z.string(),
+  oneLiner: z.string(),
+  themes: z.array(
+    z.object({
+      label: z.string(),
+      why: z.string(),
+    }),
+  ),
+  suggestedTags: z.array(z.string()),
+  resurfaced: z.array(
+    z.object({
+      id: z.string(),
+      reason: z.string(),
+      questionToRevisit: z.string(),
+    }),
+  ),
+  nextActions: z.array(z.string()),
+});
+
+function parseInsights(text: string) {
+  try {
+    return InsightsSchema.parse(JSON.parse(text));
+  } catch {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) {
+      throw new Error("Grok returned non-JSON content");
+    }
+    const trimmed = text.slice(start, end + 1);
+    return InsightsSchema.parse(JSON.parse(trimmed));
+  }
+}
 
 function demoInsights(items: BookmarkItem[]): GrokInsights {
   const tags = new Map<string, number>();
@@ -88,7 +122,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ insights: demoInsights(items), demo: true });
   }
 
-  const model = process.env.XAI_MODEL ?? "grok-2-latest";
+  const model = process.env.XAI_MODEL ?? "grok-4-1-fast-reasoning";
 
   const compact = items.map((b) => ({
     id: b.id,
@@ -104,8 +138,9 @@ export async function POST(req: Request) {
   const system = [
     "You are Grok, acting as a personal research assistant for X bookmarks.",
     "Return ONLY valid JSON. No markdown. No extra keys.",
-    "Your job: help the user retrieve and revisit what they saved.",
+    "Your job: help the user retrieve and revisit what they saved with deep, specific observations.",
     "Important: X bookmark lookup does not include the true 'saved at' timestamp. If a field named savedAt is present, treat it as approximate and do not reason about recency from it.",
+    "If a URL or author is unclear, you may use web_search or x_search to gather context. Only cite information you learned from tools.",
     "",
     "Output schema:",
     "{",
@@ -120,24 +155,28 @@ export async function POST(req: Request) {
 
   const user = [
     "Analyze these bookmarks (JSON array).",
-    "Focus on: recurring themes, missing tags that would improve retrieval, and 3-8 concrete next actions.",
-    "Pick 3-6 items to resurface with a specific reason + a question that makes the user do work.",
+    "Focus on: recurring themes, missing tags that would improve retrieval, and 6-10 concrete next actions.",
+    "Pick 4-8 items to resurface with a specific reason + a question that makes the user do work.",
+    "Make themes specific and evidence-based, not generic. Include the 2-3 strongest signals per theme.",
+    "Suggested tags should be precise and practical (avoid duplicates or near-synonyms).",
     "",
     JSON.stringify(compact),
   ].join("\n");
 
   try {
-    const content = await xaiChatCompletion({
+    const content = await xaiAgenticResponse({
       model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
       ],
-      temperature: 0.25,
-      maxTokens: 900,
+      tools: [{ type: "web_search" }, { type: "x_search" }, { type: "code_interpreter" }],
+      temperature: 0.2,
+      maxTokens: 1600,
+      maxTurns: 5,
     });
 
-    const insights = JSON.parse(content) as GrokInsights;
+    const insights = parseInsights(content) as GrokInsights;
     return NextResponse.json({ insights, demo: false });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

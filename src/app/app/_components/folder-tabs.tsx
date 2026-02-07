@@ -15,7 +15,7 @@ export function FolderTabs({
 }) {
   return (
     <div className="relative">
-      <div className="no-scrollbar flex w-full items-center gap-2 overflow-x-auto pb-1">
+      <div className="no-scrollbar flex w-full items-center gap-1 overflow-x-auto pb-1">
         {folders.map((f) => {
           const active = f.id === activeId;
           return (
@@ -24,10 +24,10 @@ export function FolderTabs({
               type="button"
               onClick={() => onChange(f.id)}
               className={cn(
-                "shrink-0 rounded-full border px-4 py-2 text-sm font-semibold shadow-[0_10px_30px_var(--shadow)] transition hover:-translate-y-[1px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(31,223,100,0.55)]",
+                "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                 active
-                  ? "border-[color:rgba(31,223,100,0.55)] bg-[color:rgba(31,223,100,0.20)] text-[color:rgba(16,17,20,0.92)]"
-                  : "border-[var(--line)] bg-[var(--paper)] text-[color:var(--muted-ink)] hover:bg-[color:rgba(16,17,20,0.04)]",
+                  ? "bg-[var(--ink)] text-black font-bold"
+                  : "text-[var(--muted-ink)] hover:bg-[var(--surface)]",
               )}
             >
               {f.name}

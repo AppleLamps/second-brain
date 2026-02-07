@@ -27,12 +27,12 @@ export function BookmarkList({
   return (
     <section>
       <div className="flex items-center justify-between gap-4">
-        <h2 className="font-[var(--font-display)] text-2xl tracking-[-0.02em]">
+        <h2 className="text-lg font-bold tracking-[-0.02em] text-[var(--ink)]">
           {title}
         </h2>
         <div className="flex items-center gap-2">
           {headerRight}
-          <div className="rounded-full border border-[var(--line)] bg-[color:rgba(16,17,20,0.03)] px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase text-[color:var(--muted-ink)]">
+          <div className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--muted-ink)]">
             {items.length} posts
           </div>
         </div>
@@ -40,24 +40,24 @@ export function BookmarkList({
 
       {toolbar ? <div className="mt-4">{toolbar}</div> : null}
 
-      <div className="mt-4 grid grid-cols-1 gap-4">
+      <div className="mt-4 rounded-2xl border border-[var(--line)] overflow-hidden">
         {loading && items.length === 0 ? (
           <>
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={`sk-${i}`}
-                className="rounded-2xl border border-[var(--line)] bg-[color:rgba(16,17,20,0.02)] p-4 shadow-[0_18px_60px_var(--shadow)]"
+                className="border-b border-[var(--line)] px-4 py-4"
               >
-                <div className="h-3 w-44 animate-pulse rounded bg-[color:rgba(16,17,20,0.10)]" />
+                <div className="h-3 w-44 animate-pulse rounded bg-[rgba(255,255,255,0.06)]" />
                 <div className="mt-3 space-y-2">
-                  <div className="h-3 w-full animate-pulse rounded bg-[color:rgba(16,17,20,0.08)]" />
-                  <div className="h-3 w-[92%] animate-pulse rounded bg-[color:rgba(16,17,20,0.08)]" />
-                  <div className="h-3 w-[82%] animate-pulse rounded bg-[color:rgba(16,17,20,0.08)]" />
+                  <div className="h-3 w-full animate-pulse rounded bg-[rgba(255,255,255,0.04)]" />
+                  <div className="h-3 w-[92%] animate-pulse rounded bg-[rgba(255,255,255,0.04)]" />
+                  <div className="h-3 w-[82%] animate-pulse rounded bg-[rgba(255,255,255,0.04)]" />
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <div className="h-6 w-20 animate-pulse rounded-full bg-[color:rgba(16,17,20,0.07)]" />
-                  <div className="h-6 w-16 animate-pulse rounded-full bg-[color:rgba(16,17,20,0.07)]" />
-                  <div className="h-6 w-24 animate-pulse rounded-full bg-[color:rgba(16,17,20,0.07)]" />
+                  <div className="h-6 w-20 animate-pulse rounded-full bg-[rgba(255,255,255,0.04)]" />
+                  <div className="h-6 w-16 animate-pulse rounded-full bg-[rgba(255,255,255,0.04)]" />
+                  <div className="h-6 w-24 animate-pulse rounded-full bg-[rgba(255,255,255,0.04)]" />
                 </div>
               </div>
             ))}
@@ -68,9 +68,9 @@ export function BookmarkList({
       </div>
 
       {!loading && items.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[color:rgba(16,17,20,0.03)] p-6">
-          <div className="text-sm font-semibold">Nothing here yet</div>
-          <div className="mt-2 text-sm text-[color:var(--muted-ink)]">
+        <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6">
+          <div className="text-sm font-semibold text-[var(--ink)]">Nothing here yet</div>
+          <div className="mt-2 text-sm text-[var(--muted-ink)]">
             {emptyHint ?? "Try another folder, or clear your search."}
           </div>
         </div>
@@ -82,7 +82,7 @@ export function BookmarkList({
             type="button"
             onClick={onLoadMore}
             disabled={loadingMore}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--paper)] px-5 text-sm font-semibold shadow-[0_16px_50px_var(--shadow)] transition hover:-translate-y-[1px] disabled:opacity-70"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] px-5 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-2)] disabled:opacity-70"
           >
             {loadingMore ? "Loading..." : "Load more"}
           </button>

@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  /* Color system: warm paper + ink + acid highlight */
-  --bg: #f6f1e6;
-  --paper: #fbf7ef;
-  --ink: #101114;
-  --muted-ink: rgba(16, 17, 20, 0.7);
-  --line: rgba(16, 17, 20, 0.12);
-  --shadow: rgba(16, 17, 20, 0.16);
+  /* Minimal warm light theme */
+  --bg: #f7f5f1;
+  --surface: #ffffff;
+  --surface-2: #f1eee8;
+  --ink: #0f1113;
+  --muted-ink: #6b625a;
+  --line: rgba(15, 17, 19, 0.08);
+  --shadow: rgba(15, 17, 19, 0.08);
 
-  --accent: #1fdf64;
-  --accent-2: #ff5d4a;
-  --accent-3: #2f6bff;
+  --accent: #0f1113;
+  --accent-2: #6c5ce7;
+  --accent-3: #00a67e;
 }
 
 @theme inline {
@@ -27,32 +28,26 @@ body {
   color: var(--ink);
   font-family: var(--font-text), ui-sans-serif, system-ui, -apple-system,
     Segoe UI, sans-serif;
-}
-
-/* Subtle tactile background: paper grain + light gradients. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  background:
-    radial-gradient(1200px 700px at 20% 10%, rgba(31, 223, 100, 0.12), transparent 62%),
-    radial-gradient(900px 600px at 85% 15%, rgba(47, 107, 255, 0.10), transparent 60%),
-    radial-gradient(900px 700px at 60% 95%, rgba(255, 93, 74, 0.10), transparent 60%),
-    repeating-linear-gradient(
-      90deg,
-      rgba(16, 17, 20, 0.03) 0px,
-      rgba(16, 17, 20, 0.03) 1px,
-      transparent 1px,
-      transparent 10px
-    );
-  mix-blend-mode: multiply;
-  opacity: 0.9;
+  letter-spacing: -0.01em;
 }
 
 ::selection {
-  background: rgba(31, 223, 100, 0.35);
+  background: rgba(15, 17, 19, 0.16);
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 17, 19, 0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 17, 19, 0.2);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -62,4 +57,87 @@ body::before {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@keyframes sbFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sbSoftPulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes sbShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.sb-fade-up {
+  animation: sbFadeUp 420ms ease-out both;
+}
+
+.sb-stagger > * {
+  animation: sbFadeUp 420ms ease-out both;
+}
+
+.sb-stagger > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.sb-stagger > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.sb-stagger > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.sb-stagger > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.sb-stagger > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+
+.sb-pulse-dot {
+  display: inline-flex;
+  height: 8px;
+  width: 8px;
+  border-radius: 999px;
+  background: var(--accent-3);
+  animation: sbSoftPulse 1.2s ease-in-out infinite;
+}
+
+.sb-thinking-bar {
+  height: 3px;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(15, 17, 19, 0.08),
+    rgba(15, 17, 19, 0.3),
+    rgba(15, 17, 19, 0.08)
+  );
+  background-size: 200% 100%;
+  animation: sbShimmer 1.4s ease-in-out infinite;
+}
+
+/* Dark select/option styling */
+select option {
+  background: var(--surface);
+  color: var(--ink);
 }

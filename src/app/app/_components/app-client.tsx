@@ -17,6 +17,7 @@ type ApiResp = {
 export function AppClient() {
   const [isPending, startTransition] = useTransition();
   const [activeFolder, setActiveFolder] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"analysis" | "bookmarks">("analysis");
   const [data, setData] = useState<Omit<ApiResp, "items" | "meta"> | null>(null);
   const [items, setItems] = useState<BookmarkItem[]>([]);
   const [nextToken, setNextToken] = useState<string | null>(null);
@@ -157,137 +158,310 @@ export function AppClient() {
     return sorted;
   }, [items, query, sortKey]);
 
+  const isBookmarksFocus = viewMode === "bookmarks";
+
   return (
-    <main className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-6 py-10 lg:grid-cols-[1fr_380px]">
-      <section>
-        <div className="flex flex-col gap-4">
-          <div>
-            <div className="text-xs font-semibold tracking-[0.18em] uppercase text-[color:var(--muted-ink)]">
-              Your bookmarks, reorganized
+    <main
+      className={`grid w-full grid-cols-1 gap-0 ${
+        isBookmarksFocus
+          ? "lg:grid-cols-[1fr_380px]"
+          : "lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]"
+      }`}
+    >
+      {isBookmarksFocus ? (
+        <>
+          <section className="border-r border-[var(--line)] px-6 py-6">
+            <div className="flex flex-col gap-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-xl font-bold tracking-[-0.02em] text-[var(--ink)]">
+                    Bookmarks
+                  </h1>
+                  <div className="mt-1 text-sm text-[var(--muted-ink)]">
+                    {data?.user?.username ? (
+                      <>
+                        Connected as{" "}
+                        <span className="font-semibold text-[var(--ink)]">
+                          @{data.user.username}
+                        </span>
+                      </>
+                    ) : (
+                      "Connect to load your bookmarks."
+                    )}
+                  </div>
+                </div>
+                <div className="inline-flex items-center rounded-full border border-[var(--line)] bg-[var(--surface)] p-1 text-xs font-semibold text-[var(--muted-ink)]">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("analysis")}
+                    className="rounded-full px-3 py-1 transition hover:bg-[var(--surface-2)]"
+                  >
+                    AI analysis
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("bookmarks")}
+                    className="rounded-full bg-[var(--ink)] px-3 py-1 text-[var(--surface)]"
+                  >
+                    Bookmarks
+                  </button>
+                </div>
+              </div>
+
+              <FolderTabs
+                folders={tabs}
+                activeId={activeFolder}
+                onChange={setActiveFolder}
+              />
             </div>
-            <h1 className="mt-2 font-[var(--font-display)] text-3xl tracking-[-0.03em]">
-              Knowledge base
-            </h1>
-            <div className="mt-2 text-sm text-[color:var(--muted-ink)]">
-              {data?.user?.username ? (
-                <>
-                  Connected as <span className="font-semibold">@{data.user.username}</span>
-                </>
+
+            <div className="mt-6">
+              {error ? (
+                <div className="rounded-2xl border border-[rgba(249,24,128,0.25)] bg-[rgba(249,24,128,0.06)] p-6">
+                  <div className="text-sm font-semibold text-[var(--ink)]">
+                    {error}
+                  </div>
+                  <div className="mt-2 text-sm text-[var(--muted-ink)]">
+                    This app needs X OAuth 2.0 (PKCE) with scopes:{" "}
+                    <span className="font-mono">
+                      bookmark.read tweet.read users.read offline.access
+                    </span>
+                  </div>
+                  <a
+                    href={connectUrl}
+                    className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[var(--accent)] px-5 text-sm font-bold text-white transition hover:opacity-90"
+                  >
+                    Connect X
+                  </a>
+                </div>
+              ) : data ? (
+                <BookmarkList
+                  title={title}
+                  items={shownItems}
+                  loading={isPending}
+                  emptyHint={
+                    query.trim()
+                      ? `No matches for "${query.trim()}". Try a tag, @username, or domain.`
+                      : "No bookmarks returned for this folder."
+                  }
+                  headerRight={
+                    data?.user?.id ? (
+                      <div className="hidden items-center gap-2 sm:flex">
+                        <button
+                          type="button"
+                          onClick={refreshNow}
+                          className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 text-xs font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-2)]"
+                          title="Refresh"
+                        >
+                          <RotateCw size={14} />
+                          Refresh
+                        </button>
+                        <button
+                          type="button"
+                          onClick={disconnect}
+                          className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[rgba(249,24,128,0.25)] bg-[rgba(249,24,128,0.06)] px-3 text-xs font-semibold text-[var(--accent-2)] transition hover:bg-[rgba(249,24,128,0.12)]"
+                          title="Disconnect"
+                        >
+                          <LogOut size={14} />
+                          Disconnect
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                  toolbar={
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_190px]">
+                      <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                        <Search size={16} className="text-[var(--muted-ink)]" />
+                        <input
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                          placeholder="Search text, @user, #tag, domain..."
+                          className="w-full bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted-ink)]"
+                        />
+                      </div>
+                      <label className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                        <SlidersHorizontal
+                          size={16}
+                          className="text-[var(--muted-ink)]"
+                        />
+                        <select
+                          value={sortKey}
+                          onChange={(e) =>
+                            setSortKey(e.target.value as typeof sortKey)
+                          }
+                          className="w-full bg-transparent text-sm text-[var(--ink)] outline-none"
+                          aria-label="Sort"
+                        >
+                          <option value="newest">Newest posts</option>
+                          <option value="likes">Most liked</option>
+                          <option value="impressions">Most impressions</option>
+                        </select>
+                      </label>
+                    </div>
+                  }
+                  canLoadMore={Boolean(nextToken)}
+                  onLoadMore={loadMore}
+                  loadingMore={loadingMore}
+                />
               ) : (
-                "Connect to load your bookmarks."
+                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6">
+                  <div className="text-sm font-semibold text-[var(--ink)]">
+                    Loading...
+                  </div>
+                  <div className="mt-2 text-sm text-[var(--muted-ink)]">
+                    Pulling bookmarks via X API.
+                  </div>
+                </div>
               )}
             </div>
-          </div>
 
-          <FolderTabs folders={tabs} activeId={activeFolder} onChange={setActiveFolder} />
-        </div>
+            {isPending ? (
+              <div className="mt-3 text-xs font-semibold tracking-[0.14em] uppercase text-[var(--muted-ink)]">
+                Syncing...
+              </div>
+            ) : null}
+          </section>
 
-        <div className="mt-6 rounded-[28px] border border-[var(--line)] bg-[var(--paper)] p-5 shadow-[0_30px_120px_var(--shadow)]">
-          {error ? (
-            <div className="rounded-[22px] border border-[color:rgba(255,93,74,0.35)] bg-[color:rgba(255,93,74,0.10)] p-6">
-              <div className="text-sm font-semibold text-[color:rgba(16,17,20,0.88)]">
-                {error}
+          <aside className="px-6 py-6 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
+            <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
+                AI analysis
               </div>
-              <div className="mt-2 text-sm text-[color:rgba(16,17,20,0.72)]">
-                This app needs X OAuth 2.0 (PKCE) with scopes:{" "}
-                <span className="font-mono">bookmark.read tweet.read users.read offline.access</span>
+              <div className="mt-2 text-lg font-semibold text-[var(--ink)]">
+                Signals, themes, next actions
               </div>
-              <a
-                href={connectUrl}
-                className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[color:var(--ink)] px-5 text-sm font-semibold text-[color:var(--paper)] shadow-[0_16px_50px_var(--shadow)] transition hover:-translate-y-[1px]"
-              >
-                Connect X
-              </a>
+              <p className="mt-2 text-sm text-[var(--muted-ink)]">
+                This view keeps analysis in reach while you browse bookmarks.
+              </p>
+              <div className="mt-4">
+                <GrokPanel bookmarks={shownItems} />
+              </div>
             </div>
-          ) : data ? (
-            <BookmarkList
-              title={title}
-              items={shownItems}
-              loading={isPending}
-              emptyHint={
-                query.trim()
-                  ? `No matches for "${query.trim()}". Try a tag, @username, or domain.`
-                  : "No bookmarks returned for this folder."
-              }
-              headerRight={
-                data?.user?.id ? (
-                  <div className="hidden items-center gap-2 sm:flex">
-                    <button
-                      type="button"
-                      onClick={refreshNow}
-                      className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[var(--line)] bg-[var(--paper)] px-3 text-xs font-semibold shadow-[0_10px_30px_var(--shadow)] transition hover:-translate-y-[1px]"
-                      title="Refresh"
-                    >
-                      <RotateCw size={14} />
-                      Refresh
-                    </button>
-                    <button
-                      type="button"
-                      onClick={disconnect}
-                      className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[color:rgba(255,93,74,0.35)] bg-[color:rgba(255,93,74,0.10)] px-3 text-xs font-semibold text-[color:rgba(16,17,20,0.86)] shadow-[0_10px_30px_var(--shadow)] transition hover:-translate-y-[1px]"
-                      title="Disconnect"
-                    >
-                      <LogOut size={14} />
-                      Disconnect
-                    </button>
+          </aside>
+        </>
+      ) : (
+        <>
+          <section className="border-r border-[var(--line)] px-6 py-6">
+            <div className="flex flex-col gap-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-xl font-bold tracking-[-0.02em] text-[var(--ink)]">
+                    AI analysis
+                  </h1>
+                  <div className="mt-1 text-sm text-[var(--muted-ink)]">
+                    Your bookmarks are context. The insights are the main event.
                   </div>
-                ) : null
-              }
-              toolbar={
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_190px]">
-                  <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[color:rgba(16,17,20,0.03)] px-4 py-3 shadow-[0_16px_50px_var(--shadow)]">
-                    <Search size={16} className="text-[color:var(--muted-ink)]" />
-                    <input
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search text, @user, #tag, domain..."
-                      className="w-full bg-transparent text-sm outline-none placeholder:text-[color:rgba(16,17,20,0.45)]"
-                    />
-                  </div>
-                  <label className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[color:rgba(16,17,20,0.03)] px-4 py-3 shadow-[0_16px_50px_var(--shadow)]">
-                    <SlidersHorizontal
-                      size={16}
-                      className="text-[color:var(--muted-ink)]"
-                    />
-                    <select
-                      value={sortKey}
-                      onChange={(e) =>
-                        setSortKey(e.target.value as typeof sortKey)
-                      }
-                      className="w-full bg-transparent text-sm outline-none"
-                      aria-label="Sort"
-                    >
-                      <option value="newest">Newest posts</option>
-                      <option value="likes">Most liked</option>
-                      <option value="impressions">Most impressions</option>
-                    </select>
-                  </label>
                 </div>
-              }
-              canLoadMore={Boolean(nextToken)}
-              onLoadMore={loadMore}
-              loadingMore={loadingMore}
-            />
-          ) : (
-            <div className="rounded-[22px] border border-[var(--line)] bg-[color:rgba(16,17,20,0.03)] p-6">
-              <div className="text-sm font-semibold">Loading...</div>
-              <div className="mt-2 text-sm text-[color:var(--muted-ink)]">
-                Pulling bookmarks via X API.
+                <div className="inline-flex items-center rounded-full border border-[var(--line)] bg-[var(--surface)] p-1 text-xs font-semibold text-[var(--muted-ink)]">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("analysis")}
+                    className="rounded-full bg-[var(--ink)] px-3 py-1 text-[var(--surface)]"
+                  >
+                    AI analysis
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("bookmarks")}
+                    className="rounded-full px-3 py-1 transition hover:bg-[var(--surface-2)]"
+                  >
+                    Bookmarks
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
+                  Analysis scope
+                </div>
+                <div className="mt-3">
+                  <FolderTabs
+                    folders={tabs}
+                    activeId={activeFolder}
+                    onChange={setActiveFolder}
+                  />
+                </div>
+              </div>
+
+              {error ? (
+                <div className="rounded-2xl border border-[rgba(249,24,128,0.25)] bg-[rgba(249,24,128,0.06)] p-6">
+                  <div className="text-sm font-semibold text-[var(--ink)]">
+                    {error}
+                  </div>
+                  <div className="mt-2 text-sm text-[var(--muted-ink)]">
+                    This app needs X OAuth 2.0 (PKCE) with scopes:{" "}
+                    <span className="font-mono">
+                      bookmark.read tweet.read users.read offline.access
+                    </span>
+                  </div>
+                  <a
+                    href={connectUrl}
+                    className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[var(--accent)] px-5 text-sm font-bold text-white transition hover:opacity-90"
+                  >
+                    Connect X
+                  </a>
+                </div>
+              ) : null}
+
+              <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6">
+                <GrokPanel bookmarks={shownItems} />
               </div>
             </div>
-          )}
-        </div>
+          </section>
 
-        {isPending ? (
-          <div className="mt-3 text-xs font-semibold tracking-[0.18em] uppercase text-[color:var(--muted-ink)]">
-            Syncing...
-          </div>
-        ) : null}
-      </section>
+          <aside className="px-6 py-6 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
+                  Bookmarks context
+                </div>
+                <div className="mt-1 text-sm text-[var(--muted-ink)]">
+                  {data?.user?.username ? (
+                    <>
+                      @{data.user.username} · {shownItems.length} loaded
+                    </>
+                  ) : (
+                    "Connect to load your bookmarks."
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewMode("bookmarks")}
+                className="inline-flex h-9 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-xs font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-2)]"
+              >
+                Open bookmarks
+              </button>
+            </div>
 
-      <aside className="lg:sticky lg:top-24 lg:self-start">
-        <GrokPanel bookmarks={shownItems} />
-      </aside>
+            <div className="mt-4">
+              {error ? (
+                <div className="rounded-2xl border border-[rgba(249,24,128,0.25)] bg-[rgba(249,24,128,0.06)] p-4 text-sm text-[var(--ink)]">
+                  Bookmarks unavailable. Connect X to load them.
+                </div>
+              ) : data ? (
+                <BookmarkList
+                  title="Bookmarks"
+                  items={shownItems}
+                  loading={isPending}
+                  emptyHint={
+                    query.trim()
+                      ? `No matches for "${query.trim()}".`
+                      : "No bookmarks returned for this folder."
+                  }
+                  canLoadMore={Boolean(nextToken)}
+                  onLoadMore={loadMore}
+                  loadingMore={loadingMore}
+                />
+              ) : (
+                <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--muted-ink)]">
+                  Loading bookmarks...
+                </div>
+              )}
+            </div>
+          </aside>
+        </>
+      )}
     </main>
   );
 }

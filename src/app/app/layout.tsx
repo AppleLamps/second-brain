@@ -1,37 +1,71 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Bookmark, Home, Search, Sparkles, Zap } from "lucide-react";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[color:rgba(246,241,230,0.75)] backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-baseline gap-3">
-            <span className="font-[var(--font-display)] text-xl tracking-[-0.02em]">
-              Second Brain
-            </span>
-            <span className="text-xs font-semibold tracking-[0.18em] uppercase text-[color:var(--muted-ink)]">
-              Demo
-            </span>
+    <div className="flex min-h-screen">
+      {/* Grok-style sidebar */}
+      <aside className="sticky top-0 flex h-screen w-[68px] flex-col items-center border-r border-[var(--line)] bg-[var(--bg)] py-6 lg:w-[240px] lg:items-stretch lg:px-4">
+        {/* Logo */}
+        <Link href="/" className="mb-8 flex items-center gap-3 px-3">
+          <svg viewBox="0 0 24 24" className="h-7 w-7 fill-current text-[var(--ink)]" aria-label="X">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          <span className="hidden text-lg font-bold tracking-[-0.02em] text-[var(--ink)] lg:block">
+            Second Brain
+          </span>
+        </Link>
+
+        {/* Nav items */}
+        <nav className="flex flex-1 flex-col gap-1">
+          <Link
+            href="/"
+            className="flex items-center gap-4 rounded-full px-3 py-3 text-[15px] text-[var(--muted-ink)] transition-colors hover:bg-[var(--surface)] lg:px-4"
+          >
+            <Home size={22} strokeWidth={1.75} />
+            <span className="hidden lg:block">Home</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/"
-              className="rounded-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-sm font-semibold shadow-[0_10px_30px_var(--shadow)] transition hover:-translate-y-[1px]"
-            >
-              Home
-            </Link>
-            <a
-              href="/api/auth/x/start"
-              className="rounded-full bg-[color:var(--ink)] px-4 py-2 text-sm font-semibold text-[color:var(--paper)] shadow-[0_16px_50px_var(--shadow)] transition hover:-translate-y-[1px]"
-              title="Connect your X account (OAuth 2.0 PKCE)"
-            >
-              Connect X
-            </a>
-          </div>
+          <Link
+            href="/app"
+            className="flex items-center gap-4 rounded-full px-3 py-3 text-[15px] font-bold text-[var(--ink)] transition-colors hover:bg-[var(--surface)] lg:px-4"
+          >
+            <Bookmark size={22} strokeWidth={2} />
+            <span className="hidden lg:block">Bookmarks</span>
+          </Link>
+          <Link
+            href="/app"
+            className="flex items-center gap-4 rounded-full px-3 py-3 text-[15px] text-[var(--muted-ink)] transition-colors hover:bg-[var(--surface)] lg:px-4"
+          >
+            <Sparkles size={22} strokeWidth={1.75} />
+            <span className="hidden lg:block">Grok Insights</span>
+          </Link>
+          <Link
+            href="/app"
+            className="flex items-center gap-4 rounded-full px-3 py-3 text-[15px] text-[var(--muted-ink)] transition-colors hover:bg-[var(--surface)] lg:px-4"
+          >
+            <Search size={22} strokeWidth={1.75} />
+            <span className="hidden lg:block">Search</span>
+          </Link>
+        </nav>
+
+        {/* Bottom action */}
+        <div className="mt-auto flex flex-col gap-2">
+          <a
+            href="/api/auth/x/start"
+            className="flex items-center justify-center gap-3 rounded-full bg-[var(--accent)] px-3 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 lg:px-5"
+            title="Connect your X account (OAuth 2.0 PKCE)"
+          >
+            <Zap size={18} />
+            <span className="hidden lg:block">Connect X</span>
+          </a>
         </div>
-      </header>
-      {children}
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 overflow-y-auto">
+        {children}
+      </div>
     </div>
   );
 }

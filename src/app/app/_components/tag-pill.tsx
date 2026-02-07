@@ -10,13 +10,13 @@ export function TagPill({
   tone?: "paper" | "accent" | "ink";
 }) {
   const base =
-    "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-[0.06em]";
+    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium";
   const toneClass =
     tone === "accent"
-      ? "border border-[color:rgba(31,223,100,0.35)] bg-[color:rgba(31,223,100,0.16)] text-[color:rgba(16,17,20,0.92)]"
+      ? "bg-[rgba(29,155,240,0.12)] text-[var(--accent)]"
       : tone === "ink"
-        ? "border border-[color:rgba(16,17,20,0.18)] bg-[color:rgba(16,17,20,0.06)] text-[color:rgba(16,17,20,0.86)]"
-        : "border border-[var(--line)] bg-[var(--paper)] text-[color:var(--muted-ink)]";
+        ? "bg-[rgba(255,255,255,0.06)] text-[var(--muted-ink)]"
+        : "bg-[var(--surface)] text-[var(--muted-ink)]";
 
   return <span className={cn(base, toneClass)}>{children}</span>;
 }

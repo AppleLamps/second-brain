@@ -47,7 +47,7 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
 
   const payload = useMemo(
     () => ({
-      items: bookmarks.slice(0, 20),
+      items: bookmarks.slice(0, 50),
     }),
     [bookmarks],
   );
@@ -76,16 +76,18 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
   }
 
   return (
-    <div className="rounded-[28px] border border-[var(--line)] bg-[var(--paper)] p-5 shadow-[0_30px_120px_var(--shadow)]">
+    <div className="sb-fade-up rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-semibold tracking-[0.18em] uppercase text-[color:var(--muted-ink)]">
+          <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.14em] uppercase text-[var(--muted-ink)]">
+            <Sparkles size={14} className="text-[var(--accent)]" />
             Grok
+            {isPending ? <span className="sb-pulse-dot" aria-hidden /> : null}
           </div>
-          <div className="mt-2 font-[var(--font-display)] text-2xl tracking-[-0.02em]">
+          <div className="mt-2 text-xl font-bold tracking-[-0.02em] text-[var(--ink)]">
             {insights.title}
           </div>
-          <p className="mt-2 text-sm leading-7 text-[color:var(--muted-ink)]">
+          <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">
             {insights.oneLiner}
           </p>
         </div>
@@ -93,7 +95,7 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
         <button
           type="button"
           onClick={runGrok}
-          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-[color:var(--ink)] px-4 text-sm font-semibold text-[color:var(--paper)] shadow-[0_16px_50px_var(--shadow)] transition hover:-translate-y-[1px] disabled:opacity-70"
+          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
           disabled={isPending || payload.items.length === 0}
           title="Calls your /api/grok endpoint. Requires XAI_API_KEY for real output."
         >
@@ -103,26 +105,28 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
       </div>
 
       {error ? (
-        <div className="mt-4 rounded-2xl border border-[color:rgba(255,93,74,0.35)] bg-[color:rgba(255,93,74,0.10)] p-4 text-sm text-[color:rgba(16,17,20,0.88)]">
+        <div className="mt-4 rounded-xl bg-[rgba(249,24,128,0.06)] p-4 text-sm text-[var(--ink)]">
           <div className="font-semibold">Using demo insights</div>
-          <div className="mt-1 text-xs text-[color:rgba(16,17,20,0.72)]">
+          <div className="mt-1 text-xs text-[var(--muted-ink)]">
             {error}
           </div>
         </div>
       ) : null}
 
+      {isPending ? <div className="mt-4 sb-thinking-bar" /> : null}
+
       <div className="mt-5">
-        <div className="text-xs font-semibold tracking-[0.18em] uppercase text-[color:var(--muted-ink)]">
+        <div className="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--muted-ink)]">
           Themes
         </div>
-        <div className="mt-3 space-y-3">
+        <div className="sb-stagger mt-3 space-y-2">
           {insights.themes.map((t) => (
             <div
               key={t.label}
-              className="rounded-2xl border border-[var(--line)] bg-[color:rgba(16,17,20,0.03)] p-4"
+              className="rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-4"
             >
-              <div className="font-semibold">{t.label}</div>
-              <div className="mt-1 text-sm leading-7 text-[color:var(--muted-ink)]">
+              <div className="font-semibold text-[var(--ink)]">{t.label}</div>
+              <div className="mt-1 text-sm leading-6 text-[var(--muted-ink)]">
                 {t.why}
               </div>
             </div>
@@ -131,10 +135,10 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
       </div>
 
       <div className="mt-5">
-        <div className="text-xs font-semibold tracking-[0.18em] uppercase text-[color:var(--muted-ink)]">
+        <div className="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--muted-ink)]">
           Suggested tags
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="sb-stagger mt-3 flex flex-wrap gap-2">
           {insights.suggestedTags.map((t) => (
             <TagPill key={t} tone="accent">
               {t}
@@ -144,12 +148,12 @@ export function GrokPanel({ bookmarks }: { bookmarks: BookmarkItem[] }) {
       </div>
 
       <div className="mt-5">
-        <div className="text-xs font-semibold tracking-[0.18em] uppercase text-[color:var(--muted-ink)]">
+        <div className="text-xs font-semibold tracking-[0.14em] uppercase text-[var(--muted-ink)]">
           Next actions
         </div>
-        <ul className="mt-3 space-y-2 text-sm leading-7 text-[color:rgba(16,17,20,0.88)]">
+        <ul className="sb-stagger mt-3 space-y-2 text-sm leading-6 text-[var(--ink)]">
           {insights.nextActions.slice(0, 5).map((a) => (
-            <li key={a} className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-3">
+            <li key={a} className="rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-3">
               {a}
             </li>
           ))}
