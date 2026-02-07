@@ -9,6 +9,33 @@ type XaiChatCompletionResponse = {
   }> | null;
 };
 
+const dailyBudgetState = {
+  date: "",
+  used: 0,
+};
+
+function applyDailyTokenBudget(maxTokens: number) {
+  const rawBudget = process.env.XAI_DAILY_TOKEN_BUDGET;
+  if (!rawBudget) return;
+
+  const budget = Number(rawBudget);
+  if (!Number.isFinite(budget) || budget <= 0) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (dailyBudgetState.date !== today) {
+    dailyBudgetState.date = today;
+    dailyBudgetState.used = 0;
+  }
+
+  if (dailyBudgetState.used + maxTokens > budget) {
+    throw new Error(
+      `xAI daily token budget exceeded (${dailyBudgetState.used}/${budget}). Try again tomorrow or raise XAI_DAILY_TOKEN_BUDGET.`,
+    );
+  }
+
+  dailyBudgetState.used += maxTokens;
+}
+
 export async function xaiChatCompletion({
   messages,
   model,
@@ -27,6 +54,8 @@ export async function xaiChatCompletion({
 
   const baseUrl = process.env.XAI_BASE_URL ?? "https://api.x.ai/v1";
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
+
+  applyDailyTokenBudget(maxTokens);
 
   const res = await fetch(url, {
     method: "POST",

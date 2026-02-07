@@ -2,6 +2,33 @@ import type { XSession } from "@/lib/session";
 
 const X_API_BASE = "https://api.x.com/2";
 
+const dailyRequestState = {
+  date: "",
+  used: 0,
+};
+
+function applyDailyRequestBudget() {
+  const rawBudget = process.env.X_DAILY_REQUEST_BUDGET;
+  if (!rawBudget) return;
+
+  const budget = Number(rawBudget);
+  if (!Number.isFinite(budget) || budget <= 0) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (dailyRequestState.date !== today) {
+    dailyRequestState.date = today;
+    dailyRequestState.used = 0;
+  }
+
+  if (dailyRequestState.used + 1 > budget) {
+    throw new Error(
+      `X daily request budget exceeded (${dailyRequestState.used}/${budget}). Try again tomorrow or raise X_DAILY_REQUEST_BUDGET.`,
+    );
+  }
+
+  dailyRequestState.used += 1;
+}
+
 export type XTokenResponse = {
   token_type: string;
   expires_in: number;
@@ -74,6 +101,9 @@ export async function xOAuthRevoke(token: string) {
 
 export async function xFetch(path: string, accessToken: string, init?: RequestInit) {
   const url = path.startsWith("http") ? path : `${X_API_BASE}${path}`;
+
+  applyDailyRequestBudget();
+
   const res = await fetch(url, {
     ...init,
     headers: {
